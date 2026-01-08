@@ -772,11 +772,15 @@ export class WebhooksService {
           );
 
           const messagesPayload = messagesResponse.data;
-          const messages = Array.isArray(messagesPayload)
-            ? messagesPayload
-            : Array.isArray(messagesPayload?.messages)
-              ? messagesPayload.messages
-              : [];
+          const messageCandidates = [
+            messagesPayload,
+            messagesPayload?.messages,
+            messagesPayload?.data,
+            messagesPayload?.messages?.messages,
+            messagesPayload?.messages?.data,
+            messagesPayload?.data?.messages,
+          ];
+          const messages = messageCandidates.find((candidate) => Array.isArray(candidate)) || [];
 
           // Encontrar operador online para vincular
           const onlineOperator = line.operators.find(lo =>
