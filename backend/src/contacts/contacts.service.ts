@@ -21,12 +21,12 @@ export class ContactsService {
       },
     });
 
-    // Se existe nome, atualizar todas as conversas com "Desconhecido" para este telefone
+    // Se existe nome, atualizar todas as conversas deste telefone para refletir o nome salvo
     if (createContactDto.name && createContactDto.name.trim() !== '') {
       await this.prisma.conversation.updateMany({
         where: {
           contactPhone: contact.phone,
-          contactName: 'Desconhecido',
+          contactName: { not: createContactDto.name },
         },
         data: { contactName: createContactDto.name },
       });
