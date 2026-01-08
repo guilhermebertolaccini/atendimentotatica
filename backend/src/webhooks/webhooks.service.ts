@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { ConversationsService } from '../conversations/conversations.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
@@ -18,6 +18,7 @@ export class WebhooksService {
   constructor(
     private prisma: PrismaService,
     private conversationsService: ConversationsService,
+    @Inject(forwardRef(() => WebsocketGateway))
     private websocketGateway: WebsocketGateway,
     private linesService: LinesService,
     private mediaService: MediaService,
