@@ -20,6 +20,7 @@ export class WebhooksService {
     private conversationsService: ConversationsService,
     @Inject(forwardRef(() => WebsocketGateway))
     private websocketGateway: WebsocketGateway,
+    @Inject(forwardRef(() => LinesService))
     private linesService: LinesService,
     private mediaService: MediaService,
     private controlPanelService: ControlPanelService,
