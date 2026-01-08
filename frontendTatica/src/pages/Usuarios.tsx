@@ -30,7 +30,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "supervisor" | "operador" | "ativador" | "digital";
+  role: "admin" | "supervisor" | "operador" | "ativador" | "digital" | "agente";
   segment?: number;
   line?: number;
   lineName?: string;
@@ -46,6 +46,7 @@ const roleColors = {
   operador: "bg-success text-success-foreground",
   ativador: "bg-blue-600 text-white",
   digital: "bg-purple-600 text-white",
+  agente: "bg-cyan-600 text-white",
 };
 
 const roleLabels = {
@@ -54,12 +55,13 @@ const roleLabels = {
   operador: "Operador",
   ativador: "Ativador",
   digital: "Digital",
+  agente: "Agente",
 };
 
 // Map API role to frontend role
 const mapRole = (
   apiRole: string
-): "admin" | "supervisor" | "operador" | "ativador" | "digital" => {
+): "admin" | "supervisor" | "operador" | "ativador" | "digital" | "agente" => {
   switch (apiRole) {
     case "admin":
       return "admin";
@@ -71,6 +73,8 @@ const mapRole = (
       return "ativador";
     case "digital":
       return "digital";
+    case "agente":
+      return "agente";
     default:
       return "operador";
   }
@@ -79,7 +83,7 @@ const mapRole = (
 // Map frontend role to API role
 const mapRoleToApi = (
   role: string
-): "admin" | "supervisor" | "operator" | "ativador" | "digital" => {
+): "admin" | "supervisor" | "operator" | "ativador" | "digital" | "agente" => {
   switch (role) {
     case "admin":
       return "admin";
@@ -91,6 +95,8 @@ const mapRoleToApi = (
       return "ativador";
     case "digital":
       return "digital";
+    case "agente":
+      return "agente";
     default:
       return "operator";
   }
@@ -417,12 +423,14 @@ export default function Usuarios() {
             <SelectItem value="operador">Operador</SelectItem>
             <SelectItem value="ativador">Ativador</SelectItem>
             <SelectItem value="digital">Digital</SelectItem>
+            <SelectItem value="agente">Agente</SelectItem>
           </SelectContent>
         </Select>
       </div>
       {(formData.role === "operador" ||
         formData.role === "supervisor" ||
-        formData.role === "digital") && (
+        formData.role === "digital" ||
+        formData.role === "agente") && (
         <div className="space-y-2">
           <Label htmlFor="segment">Segmento</Label>
           <Select
