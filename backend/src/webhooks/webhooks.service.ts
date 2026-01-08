@@ -353,8 +353,11 @@ export class WebhooksService {
         }
 
         // Criar conversa
+        const resolvedGroupName = isGroup && contact.isNameManual
+          ? contact.name
+          : groupName || contact.name;
         const conversation = await this.conversationsService.create({
-          contactName: isGroup ? (groupName || contact.name) : contact.name, // Para grupos, usar nome do grupo
+          contactName: isGroup ? resolvedGroupName : contact.name, // Para grupos, usar nome do grupo
           contactPhone: from,
           segment: line.segment,
           userName: finalOperatorId ? line.operators.find(lo => lo.userId === finalOperatorId)?.user.name || null : null,
@@ -366,7 +369,7 @@ export class WebhooksService {
           mediaUrl,
           isGroup,
           groupId: groupId || undefined,
-          groupName: isGroup ? groupName : undefined,
+          groupName: isGroup ? resolvedGroupName : undefined,
           participantName: isGroup ? participantName : undefined, // Nome de quem enviou no grupo
         });
 
@@ -768,7 +771,12 @@ export class WebhooksService {
             }
           );
 
-          const messages = messagesResponse.data || [];
+          const messagesPayload = messagesResponse.data;
+          const messages = Array.isArray(messagesPayload)
+            ? messagesPayload
+            : Array.isArray(messagesPayload?.messages)
+              ? messagesPayload.messages
+              : [];
 
           // Encontrar operador online para vincular
           const onlineOperator = line.operators.find(lo =>
@@ -815,8 +823,11 @@ export class WebhooksService {
               }
 
               // Criar conversa vinculada ao operador online (se houver)
+              const conversationContactName = contact?.isNameManual
+                ? contact.name
+                : contactName;
               await this.conversationsService.create({
-                contactName: contactName,
+                contactName: conversationContactName,
                 contactPhone: isGroup ? remoteJid : contactPhone,
                 segment: line.segment,
                 userName: operatorName,
