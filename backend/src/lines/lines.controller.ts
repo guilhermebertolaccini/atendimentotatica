@@ -126,4 +126,10 @@ export class LinesController {
     await this.linesService.assignOperatorToLine(+lineId, +operatorId);
     return { message: 'Operador atribuído à linha com sucesso' };
   }
+
+  @Post(':id/sync-history')
+  @Roles(Role.admin, Role.supervisor, Role.operator)
+  async syncHistory(@Param('id') lineId: string) {
+    return this.linesService.syncHistory(+lineId);
+  }
 }

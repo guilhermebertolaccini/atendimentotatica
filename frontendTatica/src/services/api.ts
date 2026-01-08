@@ -368,6 +368,10 @@ export const linesService = {
   }>> => {
     return apiRequest(`/lines/available-for-operator/${operatorId}`);
   },
+
+  syncHistory: async (lineId: number): Promise<{ message: string }> => {
+    return apiRequest(`/lines/${lineId}/sync-history`, { method: 'POST' });
+  },
 };
 
 // ==================== CONTACTS ====================
