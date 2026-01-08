@@ -53,6 +53,7 @@ export default function Supervisionar() {
   const [isLoading, setIsLoading] = useState(true);
 
   const { user } = useAuth();
+  const isAdminLike = user?.role === "admin" || user?.role === "operador";
 
   const loadOperators = useCallback(async () => {
     try {
@@ -339,7 +340,7 @@ export default function Supervisionar() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {(user?.role === "admin" || user?.role === "digital") && (
+                  {(isAdminLike || user?.role === "digital") && (
                     <Button
                       variant="outline"
                       size="sm"

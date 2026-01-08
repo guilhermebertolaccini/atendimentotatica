@@ -104,6 +104,7 @@ interface ConversationGroup {
 
 export default function Atendimento() {
   const { user } = useAuth();
+  const isAdminLike = user?.role === "admin" || user?.role === "operador";
   const [selectedConversation, setSelectedConversation] =
     useState<ConversationGroup | null>(null);
   const [message, setMessage] = useState("");
@@ -1098,7 +1099,7 @@ export default function Atendimento() {
             messageType,
             mediaUrl,
             fileName: data.originalName || data.fileName, // Incluir nome do arquivo para documentos
-            isAdminTest: isAdminTestMode && user?.role === "admin",
+            isAdminTest: isAdminTestMode && isAdminLike,
           });
         } else {
           // Fallback: salvar via REST API
@@ -1244,7 +1245,7 @@ export default function Atendimento() {
           contactPhone: selectedConversation.contactPhone,
           message: messageText,
           messageType: "text",
-          isAdminTest: isAdminTestMode && user?.role === "admin",
+          isAdminTest: isAdminTestMode && isAdminLike,
         });
 
         // A resposta virá via evento 'message-sent' (sucesso) ou 'message-error' (erro)
@@ -1448,7 +1449,7 @@ export default function Atendimento() {
             templateId: selectedTemplateValue.id,
             templateVariables: variables,
             isNewConversation: true,
-            isAdminTest: isAdminTestMode && user?.role === "admin",
+            isAdminTest: isAdminTestMode && isAdminLike,
           });
         } else {
           // Enviar mensagem normal
@@ -1457,7 +1458,7 @@ export default function Atendimento() {
             message: contactMessageValue,
             messageType: "text",
             isNewConversation: true, // Indica que é 1x1 para verificar permissão
-            isAdminTest: isAdminTestMode && user?.role === "admin",
+            isAdminTest: isAdminTestMode && isAdminLike,
           });
         }
 
@@ -2006,7 +2007,7 @@ export default function Atendimento() {
                   </TooltipProvider>
                 </div>
                 <div className="flex items-center gap-2">
-                  {user?.role === "admin" && (
+                  {isAdminLike && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -2454,7 +2455,7 @@ export default function Atendimento() {
                     className="flex-1"
                     disabled={isSending}
                   />
-                  {user?.role === "admin" && (
+                  {isAdminLike && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>

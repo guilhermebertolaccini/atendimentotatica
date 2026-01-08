@@ -217,10 +217,10 @@ export class WebhooksService {
         });
 
         if (!contact) {
-          // Para grupos, só criar se conseguiu buscar o nome real
+          // Para grupos, seguir com um nome fallback caso a API não responda
           if (isGroup && (!groupName || groupName === 'Grupo sem nome')) {
-            console.warn(`⚠️ [Webhook] Não foi possível obter nome do grupo, ignorando criação do contato por enquanto...`);
-            return { status: 'ignored', reason: 'Could not fetch group name' };
+            console.warn(`⚠️ [Webhook] Não foi possível obter nome do grupo, criando contato com nome provisório...`);
+            groupName = `Grupo ${contactIdentifier}`;
           }
 
           // Criar contato se não existir
