@@ -30,6 +30,13 @@ export class ContactsService {
         },
         data: { contactName: createContactDto.name },
       });
+      await this.prisma.conversation.updateMany({
+        where: {
+          contactPhone: contact.phone,
+          isGroup: true,
+        },
+        data: { groupName: createContactDto.name },
+      });
     }
 
     return contact;
@@ -86,6 +93,10 @@ export class ContactsService {
         where: { contactPhone: contact.phone },
         data: { contactName: updateContactDto.name },
       });
+      await this.prisma.conversation.updateMany({
+        where: { contactPhone: contact.phone, isGroup: true },
+        data: { groupName: updateContactDto.name },
+      });
     }
 
     return updatedContact;
@@ -122,6 +133,10 @@ export class ContactsService {
       await this.prisma.conversation.updateMany({
         where: { contactPhone: phone },
         data: { contactName: updateContactDto.name },
+      });
+      await this.prisma.conversation.updateMany({
+        where: { contactPhone: phone, isGroup: true },
+        data: { groupName: updateContactDto.name },
       });
     }
 

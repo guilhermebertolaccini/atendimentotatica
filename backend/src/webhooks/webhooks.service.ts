@@ -687,7 +687,7 @@ export class WebhooksService {
         response = await axios.post(
           `${evolutionUrl}/chat/findChats/${instanceName}`,
           {
-            limit: 20, // Limitar a 20 conversas mais recentes
+            limit: 200, // Buscar mais conversas para histórico completo
           },
           {
             headers: { apikey: evolutionKey },
@@ -700,7 +700,7 @@ export class WebhooksService {
         response = await axios.post(
           `${evolutionUrl}/chat/findMessages/${instanceName}`,
           {
-            limit: 20,
+            limit: 200,
           },
           {
             headers: { apikey: evolutionKey },
@@ -763,7 +763,7 @@ export class WebhooksService {
                   remoteJid: remoteJid,
                 },
               },
-              limit: 10,
+              limit: 100,
             },
             {
               headers: { apikey: evolutionKey },
@@ -842,7 +842,7 @@ export class WebhooksService {
                 messageType,
                 isGroup,
                 groupId: isGroup ? remoteJid : undefined,
-                groupName: isGroup ? contactName : undefined,
+                groupName: isGroup ? conversationContactName : undefined,
               });
 
               imported++;
