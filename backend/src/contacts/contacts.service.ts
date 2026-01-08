@@ -8,9 +8,17 @@ export class ContactsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createContactDto: CreateContactDto) {
-    // Criar o contato
-    const contact = await this.prisma.contact.create({
-      data: createContactDto,
+    // Criar ou atualizar o contato evitando erro de duplicidade
+    const contact = await this.prisma.contact.upsert({
+      where: { phone: createContactDto.phone },
+      create: {
+        ...createContactDto,
+        isNameManual: true,
+      },
+      update: {
+        ...createContactDto,
+        isNameManual: true,
+      },
     });
 
     // Se existe nome, atualizar todas as conversas com "Desconhecido" para este telefone

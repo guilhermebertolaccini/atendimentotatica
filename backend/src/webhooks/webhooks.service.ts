@@ -676,17 +676,33 @@ export class WebhooksService {
       }
 
       // Buscar conversas recentes via Evolution API (últimas 20 conversas)
-      // Endpoint: /chat/findMessages/${instanceName}
-      const response = await axios.post(
-        `${evolutionUrl}/chat/findMessages/${instanceName}`,
-        {
-          limit: 20, // Limitar a 20 conversas mais recentes
-        },
-        {
-          headers: { apikey: evolutionKey },
-          timeout: 30000, // 30 segundos de timeout
-        }
-      );
+      let response;
+      try {
+        // Endpoint recomendado: /chat/findChats/${instanceName}
+        response = await axios.post(
+          `${evolutionUrl}/chat/findChats/${instanceName}`,
+          {
+            limit: 20, // Limitar a 20 conversas mais recentes
+          },
+          {
+            headers: { apikey: evolutionKey },
+            timeout: 30000, // 30 segundos de timeout
+          }
+        );
+      } catch (error) {
+        console.warn('⚠️ [Webhook] findChats falhou, tentando findMessages como fallback');
+        // Fallback: usar findMessages caso a Evolution não suporte findChats
+        response = await axios.post(
+          `${evolutionUrl}/chat/findMessages/${instanceName}`,
+          {
+            limit: 20,
+          },
+          {
+            headers: { apikey: evolutionKey },
+            timeout: 30000,
+          }
+        );
+      }
 
       if (!response.data || !Array.isArray(response.data)) {
         console.warn(`⚠️ [Webhook] Nenhuma conversa encontrada no histórico`);
@@ -701,7 +717,7 @@ export class WebhooksService {
       // Processar cada conversa
       for (const chat of response.data) {
         try {
-          const remoteJid = chat.id || chat.remoteJid;
+          const remoteJid = chat.id || chat.remoteJid || chat.key?.remoteJid;
           if (!remoteJid) continue;
 
           // Verificar se é grupo
