@@ -779,8 +779,19 @@ export class WebhooksService {
             messagesPayload?.messages?.messages,
             messagesPayload?.messages?.data,
             messagesPayload?.data?.messages,
+            messagesPayload?.response,
+            messagesPayload?.response?.messages,
+            messagesPayload?.response?.data,
           ];
-          const messages = messageCandidates.find((candidate) => Array.isArray(candidate)) || [];
+          let messages = messageCandidates.find((candidate) => Array.isArray(candidate)) || [];
+
+          if (messages.length === 0 && Array.isArray(messagesPayload?.messages)) {
+            const nested = messagesPayload.messages
+              .map((entry: any) => entry?.messages)
+              .filter((entry: any) => Array.isArray(entry))
+              .flat();
+            messages = nested;
+          }
 
           // Encontrar operador online para vincular
           const onlineOperator = line.operators.find(lo =>
