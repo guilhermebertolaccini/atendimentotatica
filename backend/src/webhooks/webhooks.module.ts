@@ -13,8 +13,8 @@ import { SystemEventsModule } from '../system-events/system-events.module';
 
 @Module({
   imports: [
-    ConversationsModule,
-    WebsocketModule,
+    forwardRef(() => ConversationsModule),
+    forwardRef(() => WebsocketModule),
     forwardRef(() => LinesModule),
     MediaModule,
     ControlPanelModule,
