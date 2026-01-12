@@ -8,19 +8,34 @@ export class ContactsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createContactDto: CreateContactDto) {
-    // Criar o contato
-    const contact = await this.prisma.contact.create({
-      data: createContactDto,
+    // Criar ou atualizar o contato evitando erro de duplicidade
+    const contact = await this.prisma.contact.upsert({
+      where: { phone: createContactDto.phone },
+      create: {
+        ...createContactDto,
+        isNameManual: true,
+      },
+      update: {
+        ...createContactDto,
+        isNameManual: true,
+      },
     });
 
-    // Se existe nome, atualizar todas as conversas com "Desconhecido" para este telefone
+    // Se existe nome, atualizar todas as conversas deste telefone para refletir o nome salvo
     if (createContactDto.name && createContactDto.name.trim() !== '') {
       await this.prisma.conversation.updateMany({
         where: {
           contactPhone: contact.phone,
-          contactName: 'Desconhecido',
+          contactName: { not: createContactDto.name },
         },
         data: { contactName: createContactDto.name },
+      });
+      await this.prisma.conversation.updateMany({
+        where: {
+          contactPhone: contact.phone,
+          isGroup: true,
+        },
+        data: { groupName: createContactDto.name },
       });
     }
 
@@ -78,6 +93,10 @@ export class ContactsService {
         where: { contactPhone: contact.phone },
         data: { contactName: updateContactDto.name },
       });
+      await this.prisma.conversation.updateMany({
+        where: { contactPhone: contact.phone, isGroup: true },
+        data: { groupName: updateContactDto.name },
+      });
     }
 
     return updatedContact;
@@ -114,6 +133,10 @@ export class ContactsService {
       await this.prisma.conversation.updateMany({
         where: { contactPhone: phone },
         data: { contactName: updateContactDto.name },
+      });
+      await this.prisma.conversation.updateMany({
+        where: { contactPhone: phone, isGroup: true },
+        data: { groupName: updateContactDto.name },
       });
     }
 

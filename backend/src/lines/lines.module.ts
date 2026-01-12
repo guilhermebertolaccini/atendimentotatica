@@ -8,11 +8,13 @@ import { WebsocketModule } from '../websocket/websocket.module';
 import { ControlPanelModule } from '../control-panel/control-panel.module';
 import { SystemEventsModule } from '../system-events/system-events.module';
 import { HealthCheckCacheModule } from '../health-check-cache/health-check-cache.module';
+import { WebhooksModule } from '../webhooks/webhooks.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     forwardRef(() => WebsocketModule),
+    forwardRef(() => WebhooksModule),
     ControlPanelModule,
     SystemEventsModule,
     HealthCheckCacheModule,

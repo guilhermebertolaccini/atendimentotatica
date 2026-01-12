@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { WebhooksController } from './webhooks.controller';
 import { WebhooksService } from './webhooks.service';
 import { PrismaService } from '../prisma.service';
@@ -13,9 +13,9 @@ import { SystemEventsModule } from '../system-events/system-events.module';
 
 @Module({
   imports: [
-    ConversationsModule,
-    WebsocketModule,
-    LinesModule,
+    forwardRef(() => ConversationsModule),
+    forwardRef(() => WebsocketModule),
+    forwardRef(() => LinesModule),
     MediaModule,
     ControlPanelModule,
     BlocklistModule,
@@ -24,5 +24,6 @@ import { SystemEventsModule } from '../system-events/system-events.module';
   ],
   controllers: [WebhooksController],
   providers: [WebhooksService, PrismaService],
+  exports: [WebhooksService],
 })
 export class WebhooksModule {}

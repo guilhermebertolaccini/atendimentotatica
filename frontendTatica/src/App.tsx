@@ -46,10 +46,6 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAuth();
   
   if (isAuthenticated) {
-    // Operadores devem ir direto para /atendimento
-    if (user?.role === 'operador') {
-      return <Navigate to="/atendimento" replace />;
-    }
     return <Navigate to="/" replace />;
   }
   
@@ -58,11 +54,6 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 function DashboardRoute() {
   const { user } = useAuth();
-  
-  // Operadores não podem acessar o dashboard, redirecionar para /atendimento
-  if (user?.role === 'operador') {
-    return <Navigate to="/atendimento" replace />;
-  }
   
   return <Dashboard />;
 }

@@ -40,6 +40,7 @@ const chartConfig = {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const isAdminLike = user?.role === "admin" || user?.role === "operador";
   const { isConnected: isRealtimeConnected } = useRealtimeConnection();
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     activeConversations: 0,
@@ -93,7 +94,7 @@ export default function Dashboard() {
     try {
       // Admin busca todas as métricas
       // Supervisor e Operador não precisam buscar operadores online e linhas ativas
-      if (user?.role === 'admin') {
+      if (isAdminLike) {
         const [conversations, operators, lines] = await Promise.all([
           conversationsService.getActive().catch(() => []),
           usersService.getOnlineOperators().catch(() => []),
@@ -166,7 +167,7 @@ export default function Dashboard() {
 
       // Buscar operadores online de cada dia (apenas para admin)
       let onlineCount = 0;
-      if (user?.role === 'admin') {
+      if (isAdminLike) {
         try {
           const onlineOperators = await usersService.getOnlineOperators();
           onlineCount = onlineOperators.length;
@@ -181,7 +182,7 @@ export default function Dashboard() {
         date,
         conversations: stats.conversations.size,
         messages: stats.messages,
-        operators: user?.role === 'admin' 
+        operators: isAdminLike 
           ? Math.max(stats.operators.size, onlineCount) // Usar o maior entre histórico e atual (apenas admin)
           : stats.operators.size, // Não-admin: usar apenas histórico
       }));
@@ -206,7 +207,7 @@ export default function Dashboard() {
     } finally {
       setIsLoadingChart(false);
     }
-  }, [user?.role]);
+  }, [isAdminLike, user?.role]);
 
   useEffect(() => {
     loadMetrics();
@@ -243,14 +244,14 @@ export default function Dashboard() {
       value: isLoading ? "-" : metrics.onlineOperators.toString(),
       color: "text-success",
       bgColor: "bg-success/10",
-      show: user?.role === 'admin', // Apenas admin vê
+      show: isAdminLike, // Apenas admin vê
     },
     {
       label: "Linhas Ativas",
       value: isLoading ? "-" : `${metrics.availableLines} ${metrics.availableLines === 1 ? 'linha' : 'linhas'}`,
       color: "text-cyan",
       bgColor: "bg-cyan/10",
-      show: user?.role === 'admin', // Apenas admin vê
+      show: isAdminLike, // Apenas admin vê
     }
   ].filter(metric => metric.show);
 

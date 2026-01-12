@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { ConversationsService } from '../conversations/conversations.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
@@ -18,7 +18,9 @@ export class WebhooksService {
   constructor(
     private prisma: PrismaService,
     private conversationsService: ConversationsService,
+    @Inject(forwardRef(() => WebsocketGateway))
     private websocketGateway: WebsocketGateway,
+    @Inject(forwardRef(() => LinesService))
     private linesService: LinesService,
     private mediaService: MediaService,
     private controlPanelService: ControlPanelService,
@@ -217,10 +219,10 @@ export class WebhooksService {
         });
 
         if (!contact) {
-          // Para grupos, só criar se conseguiu buscar o nome real
+          // Para grupos, seguir com um nome fallback caso a API não responda
           if (isGroup && (!groupName || groupName === 'Grupo sem nome')) {
-            console.warn(`⚠️ [Webhook] Não foi possível obter nome do grupo, ignorando criação do contato por enquanto...`);
-            return { status: 'ignored', reason: 'Could not fetch group name' };
+            console.warn(`⚠️ [Webhook] Não foi possível obter nome do grupo, criando contato com nome provisório...`);
+            groupName = `Grupo ${contactIdentifier}`;
           }
 
           // Criar contato se não existir
@@ -351,8 +353,11 @@ export class WebhooksService {
         }
 
         // Criar conversa
+        const resolvedGroupName = isGroup && contact.isNameManual
+          ? contact.name
+          : groupName || contact.name;
         const conversation = await this.conversationsService.create({
-          contactName: isGroup ? (groupName || contact.name) : contact.name, // Para grupos, usar nome do grupo
+          contactName: isGroup ? resolvedGroupName : contact.name, // Para grupos, usar nome do grupo
           contactPhone: from,
           segment: line.segment,
           userName: finalOperatorId ? line.operators.find(lo => lo.userId === finalOperatorId)?.user.name || null : null,
@@ -364,7 +369,7 @@ export class WebhooksService {
           mediaUrl,
           isGroup,
           groupId: groupId || undefined,
-          groupName: isGroup ? groupName : undefined,
+          groupName: isGroup ? resolvedGroupName : undefined,
           participantName: isGroup ? participantName : undefined, // Nome de quem enviou no grupo
         });
 
@@ -676,17 +681,33 @@ export class WebhooksService {
       }
 
       // Buscar conversas recentes via Evolution API (últimas 20 conversas)
-      // Endpoint: /chat/findMessages/${instanceName}
-      const response = await axios.post(
-        `${evolutionUrl}/chat/findMessages/${instanceName}`,
-        {
-          limit: 20, // Limitar a 20 conversas mais recentes
-        },
-        {
-          headers: { apikey: evolutionKey },
-          timeout: 30000, // 30 segundos de timeout
-        }
-      );
+      let response;
+      try {
+        // Endpoint recomendado: /chat/findChats/${instanceName}
+        response = await axios.post(
+          `${evolutionUrl}/chat/findChats/${instanceName}`,
+          {
+            limit: 200, // Buscar mais conversas para histórico completo
+          },
+          {
+            headers: { apikey: evolutionKey },
+            timeout: 30000, // 30 segundos de timeout
+          }
+        );
+      } catch (error) {
+        console.warn('⚠️ [Webhook] findChats falhou, tentando findMessages como fallback');
+        // Fallback: usar findMessages caso a Evolution não suporte findChats
+        response = await axios.post(
+          `${evolutionUrl}/chat/findMessages/${instanceName}`,
+          {
+            limit: 200,
+          },
+          {
+            headers: { apikey: evolutionKey },
+            timeout: 30000,
+          }
+        );
+      }
 
       if (!response.data || !Array.isArray(response.data)) {
         console.warn(`⚠️ [Webhook] Nenhuma conversa encontrada no histórico`);
@@ -701,7 +722,7 @@ export class WebhooksService {
       // Processar cada conversa
       for (const chat of response.data) {
         try {
-          const remoteJid = chat.id || chat.remoteJid;
+          const remoteJid = chat.id || chat.remoteJid || chat.key?.remoteJid;
           if (!remoteJid) continue;
 
           // Verificar se é grupo
@@ -742,7 +763,7 @@ export class WebhooksService {
                   remoteJid: remoteJid,
                 },
               },
-              limit: 10,
+              limit: 100,
             },
             {
               headers: { apikey: evolutionKey },
@@ -750,7 +771,27 @@ export class WebhooksService {
             }
           );
 
-          const messages = messagesResponse.data || [];
+          const messagesPayload = messagesResponse.data;
+          const messageCandidates = [
+            messagesPayload,
+            messagesPayload?.messages,
+            messagesPayload?.data,
+            messagesPayload?.messages?.messages,
+            messagesPayload?.messages?.data,
+            messagesPayload?.data?.messages,
+            messagesPayload?.response,
+            messagesPayload?.response?.messages,
+            messagesPayload?.response?.data,
+          ];
+          let messages = messageCandidates.find((candidate) => Array.isArray(candidate)) || [];
+
+          if (messages.length === 0 && Array.isArray(messagesPayload?.messages)) {
+            const nested = messagesPayload.messages
+              .map((entry: any) => entry?.messages)
+              .filter((entry: any) => Array.isArray(entry))
+              .flat();
+            messages = nested;
+          }
 
           // Encontrar operador online para vincular
           const onlineOperator = line.operators.find(lo =>
@@ -797,8 +838,11 @@ export class WebhooksService {
               }
 
               // Criar conversa vinculada ao operador online (se houver)
+              const conversationContactName = contact?.isNameManual
+                ? contact.name
+                : contactName;
               await this.conversationsService.create({
-                contactName: contactName,
+                contactName: conversationContactName,
                 contactPhone: isGroup ? remoteJid : contactPhone,
                 segment: line.segment,
                 userName: operatorName,
@@ -809,7 +853,7 @@ export class WebhooksService {
                 messageType,
                 isGroup,
                 groupId: isGroup ? remoteJid : undefined,
-                groupName: isGroup ? contactName : undefined,
+                groupName: isGroup ? conversationContactName : undefined,
               });
 
               imported++;

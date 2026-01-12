@@ -68,6 +68,7 @@ import {
   segmentsService,
   controlPanelService,
   agentsService,
+  linesService,
   Contact,
   Conversation as APIConversation,
   Tabulation,
@@ -104,6 +105,7 @@ interface ConversationGroup {
 
 export default function Atendimento() {
   const { user } = useAuth();
+  const isAdminLike = user?.role === "admin" || user?.role === "operador";
   const [selectedConversation, setSelectedConversation] =
     useState<ConversationGroup | null>(null);
   const [message, setMessage] = useState("");
@@ -134,6 +136,7 @@ export default function Atendimento() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+  const [isSyncingHistory, setIsSyncingHistory] = useState(false);
 
   // Estado para filtro de conversas
   type FilterType = "todas" | "stand-by" | "atendimento" | "finalizadas";
@@ -856,6 +859,38 @@ export default function Atendimento() {
     playErrorSound,
   ]);
 
+  const handleSyncHistory = useCallback(async () => {
+    if (!user?.lineId) {
+      toast({
+        title: "Linha não encontrada",
+        description: "Este usuário não possui linha vinculada para sincronizar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSyncingHistory(true);
+    try {
+      await linesService.syncHistory(Number(user.lineId));
+      toast({
+        title: "Sincronização iniciada",
+        description: "Estamos buscando o histórico de mensagens desta linha.",
+      });
+      setTimeout(() => {
+        loadConversations();
+      }, 1500);
+    } catch (error) {
+      toast({
+        title: "Erro ao sincronizar",
+        description:
+          error instanceof Error ? error.message : "Não foi possível sincronizar",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncingHistory(false);
+    }
+  }, [user?.lineId, loadConversations]);
+
   // Carregar templates e informações do segmento
   const loadTemplates = useCallback(async () => {
     try {
@@ -1098,7 +1133,7 @@ export default function Atendimento() {
             messageType,
             mediaUrl,
             fileName: data.originalName || data.fileName, // Incluir nome do arquivo para documentos
-            isAdminTest: isAdminTestMode && user?.role === "admin",
+            isAdminTest: isAdminTestMode && isAdminLike,
           });
         } else {
           // Fallback: salvar via REST API
@@ -1244,7 +1279,7 @@ export default function Atendimento() {
           contactPhone: selectedConversation.contactPhone,
           message: messageText,
           messageType: "text",
-          isAdminTest: isAdminTestMode && user?.role === "admin",
+          isAdminTest: isAdminTestMode && isAdminLike,
         });
 
         // A resposta virá via evento 'message-sent' (sucesso) ou 'message-error' (erro)
@@ -1448,7 +1483,7 @@ export default function Atendimento() {
             templateId: selectedTemplateValue.id,
             templateVariables: variables,
             isNewConversation: true,
-            isAdminTest: isAdminTestMode && user?.role === "admin",
+            isAdminTest: isAdminTestMode && isAdminLike,
           });
         } else {
           // Enviar mensagem normal
@@ -1457,7 +1492,7 @@ export default function Atendimento() {
             message: contactMessageValue,
             messageType: "text",
             isNewConversation: true, // Indica que é 1x1 para verificar permissão
-            isAdminTest: isAdminTestMode && user?.role === "admin",
+            isAdminTest: isAdminTestMode && isAdminLike,
           });
         }
 
@@ -2006,7 +2041,27 @@ export default function Atendimento() {
                   </TooltipProvider>
                 </div>
                 <div className="flex items-center gap-2">
-                  {user?.role === "admin" && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSyncHistory}
+                          disabled={isSyncingHistory}
+                        >
+                          {isSyncingHistory ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                          )}
+                          Sincronizar
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Buscar histórico de mensagens</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  {isAdminLike && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -2454,7 +2509,7 @@ export default function Atendimento() {
                     className="flex-1"
                     disabled={isSending}
                   />
-                  {user?.role === "admin" && (
+                  {isAdminLike && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>

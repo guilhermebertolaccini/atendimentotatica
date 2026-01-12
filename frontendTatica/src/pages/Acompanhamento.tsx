@@ -84,10 +84,11 @@ const SeverityBadge = ({ severity }: { severity: string }) => {
 export default function Acompanhamento() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isAdminLike = user?.role === "admin" || user?.role === "operador";
   
   // Verificar se é admin
   useEffect(() => {
-    if (user && user.role !== 'admin') {
+    if (user && !isAdminLike) {
       toast({
         title: "Acesso negado",
         description: "Esta página é restrita apenas para administradores",
@@ -95,7 +96,7 @@ export default function Acompanhamento() {
       });
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [user, navigate, isAdminLike]);
   
   const [events, setEvents] = useState<SystemEvent[]>([]);
   const [total, setTotal] = useState(0);
@@ -574,4 +575,3 @@ export default function Acompanhamento() {
     </MainLayout>
   );
 }
-

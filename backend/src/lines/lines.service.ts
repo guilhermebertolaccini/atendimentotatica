@@ -6,6 +6,7 @@ import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { ControlPanelService } from '../control-panel/control-panel.service';
 import { SystemEventsService, EventType, EventModule, EventSeverity } from '../system-events/system-events.service';
 import { HealthCheckCacheService } from '../health-check-cache/health-check-cache.service';
+import { WebhooksService } from '../webhooks/webhooks.service';
 import axios from 'axios';
 
 @Injectable()
@@ -14,6 +15,8 @@ export class LinesService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => WebsocketGateway))
     private websocketGateway: WebsocketGateway,
+    @Inject(forwardRef(() => WebhooksService))
+    private webhooksService: WebhooksService,
     private controlPanelService: ControlPanelService,
     private systemEventsService: SystemEventsService,
     private healthCheckCacheService: HealthCheckCacheService,
@@ -1431,6 +1434,35 @@ export class LinesService {
       linesWithOneOperator: linesWithOneOperatorCount,
       linesWithTwoOperators: linesWithTwoOperatorsCount,
     };
+  }
+
+  async syncHistory(lineId: number) {
+    const line = await this.prisma.linesStock.findUnique({
+      where: { id: lineId },
+    });
+
+    if (!line) {
+      throw new NotFoundException(`Linha ${lineId} não encontrada`);
+    }
+
+    const evolution = await this.prisma.evolution.findUnique({
+      where: { evolutionName: line.evolutionName },
+    });
+
+    if (!evolution) {
+      throw new NotFoundException(`Evolution "${line.evolutionName}" não encontrada`);
+    }
+
+    const instanceName = `line_${line.phone.replace(/\D/g, '')}`;
+
+    await this.webhooksService.importRecentHistory(
+      line.id,
+      evolution.evolutionUrl,
+      evolution.evolutionKey,
+      instanceName
+    );
+
+    return { message: 'Sincronização iniciada' };
   }
 
   // Tentar vincular linha automaticamente a operadores online sem linha do mesmo segmento (máximo 2)

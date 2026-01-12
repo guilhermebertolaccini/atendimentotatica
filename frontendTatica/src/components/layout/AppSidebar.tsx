@@ -176,9 +176,10 @@ export function AppSidebar() {
 
   if (!user) return null;
 
-  const filteredItems = menuItems.filter((item) =>
-    item.roles.includes(user.role)
-  );
+  const isAdminLike = user.role === "admin" || user.role === "operador";
+  const filteredItems = isAdminLike
+    ? menuItems
+    : menuItems.filter((item) => item.roles.includes(user.role));
   const initials = user.name
     .split(" ")
     .map((n) => n[0])
